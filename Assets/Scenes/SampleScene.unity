@@ -131,9 +131,9 @@ GameObject:
   - component: {fileID: 267046854}
   - component: {fileID: 267046855}
   - component: {fileID: 267046856}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: EnforcerEnemy
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -672,7 +672,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 905846416}
-  m_Layer: 7
+  m_Layer: 6
   m_Name: ShootPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
