@@ -7,15 +7,17 @@ public abstract class EnemyBase : MonoBehaviour
     [Header("Movimentação")]
     public float moveSpeed = 3f;
     public float stopDistance = 3f;
+    
+    [Header("Ativação/Desativação")]
+    public float activationDistance = 20f;
 
     [Header("Configuração de Tiro Rápido")]
-    public float timeBetweenShots = 3f; // Cooldown total entre os ciclos
-    public float prepareDuration = 0.5f; // Tempo de PrepareToShoot
+    public float timeBetweenShots = 3f;
+    public float prepareDuration = 0.5f;
     
-    // NOVOS PARÂMETROS PARA RAJADA E TEMPO
-    public int burstCount = 5; // Número de projéteis na rajada
-    public float fireRateInterval = 0.1f; // Tempo entre CADA projétil (ex: 0.1s)
-    public float shootAnimationDuration = 0.5f; // Duração total do clipe de animação 'Shoot'
+    public int burstCount = 5;
+    public float fireRateInterval = 0.1f;
+    public float shootAnimationDuration = 0.5f;
 
     protected Transform player;
     protected Rigidbody2D rb;
@@ -47,6 +49,22 @@ public abstract class EnemyBase : MonoBehaviour
     {
         if (player == null || animator == null)
             return;
+        
+        float distanceToPlayer = Vector2.Distance(transform.position, player.position);
+
+        if (distanceToPlayer > activationDistance)
+        {
+            rb.linearVelocity = Vector2.zero;
+            animator.SetBool("isWalking", false);
+            animator.SetBool("isPreparingShoot", false);
+            
+            if (isShootingActive)
+            {
+                StopAllCoroutines();
+                isShootingActive = false;
+            }
+            return;
+        }
 
         float directionX = player.position.x - transform.position.x;
 
