@@ -21,7 +21,7 @@ public class Bullet : MonoBehaviour
     {
         // Aplica a velocidade imediatamente. Como só é chamada uma vez, 
         // a direção (direction * speed) será fixa e a trajetória será linear.
-        rb.velocity = direction.normalized * speed;
+        rb.linearVelocity = direction.normalized * speed;
         
         // Define a rotação (opcional, apenas visual)
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;

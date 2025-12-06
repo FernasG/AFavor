@@ -1,15 +1,9 @@
-/*
 using UnityEngine;
 using System.Collections;
 
 [RequireComponent(typeof(Rigidbody2D))]
-public abstract class EnemyBase : MonoBehaviour
+public class AssaultEnemy : MonoBehaviour
 {
-    // Hashes de parâmetros do Animator para evitar erros de nome e melhorar desempenho
-    protected static readonly int HashIsPrepare = Animator.StringToHash("IsPrepare");
-    protected static readonly int HashIsShoot   = Animator.StringToHash("isShoot");
-    protected static readonly int HashIdle      = Animator.StringToHash("Idle");
-    protected static readonly int HashIsWalking = Animator.StringToHash("isWalking");
     public enum EnemyState
     {
         Patrol,
@@ -18,13 +12,15 @@ public abstract class EnemyBase : MonoBehaviour
         Dead,
         Hitted
     }
+
     [Header("Estados")]
     public EnemyState currentState = EnemyState.Patrol;
 
     [Header("Movimentação")]
     public float moveSpeed = 2f;
-    public float stopDistance = 3f;
+    public float stopDistance = 1f;
     public float stopBuffer = 0.2f;
+    private Vector3 baseScale;
 
     [Header("Patrulha")]
     public Transform[] patrolPoints;
@@ -38,23 +34,32 @@ public abstract class EnemyBase : MonoBehaviour
 
     [Header("Ativação do Chase")]
     public float activationDistance = 10f;
-    public float activationHysteresis = 1.5f; // evita piscar entre estados na borda
+    public float activationHysteresis = 1.5f;
 
+    [Header("Ataque")]
+    public float attackRange = 20f;
+    public float shootCooldown = 1.8f;
+    public bool useAnimationEvent = true;
+    public float shootFireDelay = 0.05f;
+
+    public GameObject projectilePrefab;
+    public Transform firePoint;
+
+    [Header("Sons")]
+    [SerializeField] AudioClip shootSound;
+
+    [Header("Debug / Test")]
+    [SerializeField] private bool simulateDie = false;
     protected Rigidbody2D rb;
     protected Animator animator;
     protected Transform player;
+
     protected bool facingRight = true;
     protected bool isDead = false;
     protected bool isHitted = false;
     protected bool isAttacking = false;
 
-    [Header("Ataque (Base)")]
-    public float attackRange = 6f;
-    public float shootCooldown = 2f;
-    public bool useAnimationEvent = true;
-    public float shootFireDelay = 0.05f;
-
-    protected virtual void Start()
+    protected virtual void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponentInChildren<Animator>();
@@ -63,97 +68,121 @@ public abstract class EnemyBase : MonoBehaviour
         rb.gravityScale = 0;
         rb.freezeRotation = true;
 
+        baseScale = transform.localScale;
+
         ComputePatrolBounds();
+
+        
     }
 
     void ComputePatrolBounds()
     {
         hasPatrolBounds = false;
-        if (patrolPoints == null || patrolPoints.Length == 0) return;
+
+        if (patrolPoints == null || patrolPoints.Length < 2)
+            return;
+
         patrolMinX = float.PositiveInfinity;
         patrolMaxX = float.NegativeInfinity;
+
         for (int i = 0; i < patrolPoints.Length; i++)
         {
             if (patrolPoints[i] == null) continue;
+
             float x = patrolPoints[i].position.x;
             if (x < patrolMinX) patrolMinX = x;
             if (x > patrolMaxX) patrolMaxX = x;
         }
-        if (float.IsInfinity(patrolMinX) || float.IsInfinity(-patrolMaxX)) return;
-        hasPatrolBounds = patrolMaxX > patrolMinX;
+
+        if (patrolMaxX > patrolMinX)
+            hasPatrolBounds = true;
     }
 
     protected virtual void FixedUpdate()
     {
         if (isDead) return;
-
-        float distance = float.PositiveInfinity;
-        if (player != null)
+        if (simulateDie)
         {
-            distance = Vector2.Distance(transform.position, player.position);
+            simulateDie = false; // reset
+            Die();
         }
 
-        // Mantém espera na patrulha mesmo se o player estiver por perto
-        if (waitingPatrol)
+        float distance = player != null ? Vector2.Distance(transform.position, player.position) : Mathf.Infinity;
+
+        // se player sumiu, retoma patrulha
+        if (player == null)
         {
             currentState = EnemyState.Patrol;
+            waitingPatrol = false;
         }
-        else if (!isHitted && player != null)
+        else if (!isHitted)
         {
-            // Histerese para evitar piscar entre Patrol/Chase
             if (currentState == EnemyState.Chase)
             {
                 if (distance > activationDistance + activationHysteresis)
+                {
                     currentState = EnemyState.Patrol;
-                else
-                    currentState = EnemyState.Chase;
+                    waitingPatrol = false; // importante: libera a patrulha quando sair do chase
+                }
             }
             else
             {
                 if (distance < activationDistance - activationHysteresis)
+                {
                     currentState = EnemyState.Chase;
+                }
                 else
+                {
                     currentState = EnemyState.Patrol;
+                    // se já estava em espera por algum motivo, libera pra retomar patrulha
+                    // (mas não forçamos cancelar invocations)
+                    waitingPatrol = false;
+                }
             }
         }
-        else if (currentState != EnemyState.Hitted)
+        else
         {
-            currentState = EnemyState.Patrol;
+            if (currentState != EnemyState.Hitted)
+                currentState = EnemyState.Hitted;
         }
 
         switch (currentState)
         {
             case EnemyState.Patrol:
+                moveSpeed = 2;
                 Patrol();
                 break;
 
             case EnemyState.Chase:
+                moveSpeed = 4;
                 Chase();
                 break;
 
             case EnemyState.Hitted:
                 rb.linearVelocity = Vector2.zero;
+                animator.SetBool("isWalking", false);
                 break;
 
             case EnemyState.Dead:
                 rb.linearVelocity = Vector2.zero;
+                animator.SetBool("isWalking", false);
                 break;
         }
     }
 
     // -------------------------------------------
-    // 1) SISTEMA DE PATRULHA
+    // PATRULHA
     // -------------------------------------------
     protected void Patrol()
     {
-        if (patrolPoints.Length == 0)
+        if (patrolPoints == null || patrolPoints.Length == 0)
         {
             rb.linearVelocity = Vector2.zero;
             animator.SetBool("isWalking", false);
             return;
         }
 
-        // If we're in a waiting window, keep stopped until timer advances
+        // Se estiver esperando, só segura
         if (waitingPatrol)
         {
             rb.linearVelocity = Vector2.zero;
@@ -161,51 +190,43 @@ public abstract class EnemyBase : MonoBehaviour
             return;
         }
 
-        // Continuous patrol between bounds if available
         if (hasPatrolBounds)
         {
             float x = transform.position.x;
-            float edgeThreshold = patrolArriveThreshold;
-
-            // Move forward in current facing direction
             float dir = facingRight ? 1f : -1f;
             rb.linearVelocity = new Vector2(dir * moveSpeed, 0f);
             animator.SetBool("isWalking", true);
 
-            // Hit right edge?
-            if (facingRight && x >= patrolMaxX - edgeThreshold)
+            // Corrige virada inicial baseada na posição relativa ao centro do patrol
+            float centerX = (patrolMinX + patrolMaxX) / 2f;
+            if (!waitingPatrol && Mathf.Abs(x - centerX) < 0.01f)
             {
-                rb.linearVelocity = Vector2.zero;
-                animator.SetBool("isWalking", false);
-                waitingPatrol = true;
-                if (patrolWaitTime > 0f)
-                    Invoke(nameof(FlipAndResume), patrolWaitTime);
-                else
-                    FlipAndResume();
+                facingRight = player != null ? (player.position.x > transform.position.x) : true;
             }
-            // Hit left edge?
-            else if (!facingRight && x <= patrolMinX + edgeThreshold)
+
+            // Checagem de limites
+            if (facingRight && x >= patrolMaxX - patrolArriveThreshold)
             {
-                rb.linearVelocity = Vector2.zero;
-                animator.SetBool("isWalking", false);
-                waitingPatrol = true;
-                if (patrolWaitTime > 0f)
-                    Invoke(nameof(FlipAndResume), patrolWaitTime);
-                else
-                    FlipAndResume();
+                StopAndFlip();
+            }
+            else if (!facingRight && x <= patrolMinX + patrolArriveThreshold)
+            {
+                StopAndFlip();
             }
         }
         else
         {
-            // Fallback: point-to-point patrol
+            // Waypoint patrol (mantido)
+            if (patrolIndex < 0 || patrolIndex >= patrolPoints.Length) patrolIndex = 0;
             Transform target = patrolPoints[patrolIndex];
-            Vector2 direction = (target.position - transform.position);
 
+            Vector2 direction = (Vector2)(target.position - transform.position);
             HandleFlip(direction.x);
+
             rb.linearVelocity = direction.normalized * moveSpeed;
             animator.SetBool("isWalking", true);
 
-            if (Vector2.Distance(transform.position, target.position) < patrolArriveThreshold && !waitingPatrol)
+            if (Vector2.Distance(transform.position, target.position) < patrolArriveThreshold)
             {
                 waitingPatrol = true;
                 rb.linearVelocity = Vector2.zero;
@@ -215,10 +236,13 @@ public abstract class EnemyBase : MonoBehaviour
         }
     }
 
-    void GoToNextPatrolPoint()
+
+    void StopAndFlip()
     {
-        patrolIndex = (patrolIndex + 1) % patrolPoints.Length;
-        waitingPatrol = false;
+        rb.linearVelocity = Vector2.zero;
+        animator.SetBool("isWalking", false);
+        waitingPatrol = true;
+        Invoke(nameof(FlipAndResume), patrolWaitTime);
     }
 
     void FlipAndResume()
@@ -227,8 +251,15 @@ public abstract class EnemyBase : MonoBehaviour
         waitingPatrol = false;
     }
 
+    void GoToNextPatrolPoint()
+    {
+        if (patrolPoints == null || patrolPoints.Length == 0) return;
+        patrolIndex = (patrolIndex + 1) % patrolPoints.Length;
+        waitingPatrol = false;
+    }
+
     // -------------------------------------------
-    // 2) CHASE DO PLAYER (segue a lógica anterior)
+    // CHASE
     // -------------------------------------------
     protected void Chase()
     {
@@ -236,105 +267,68 @@ public abstract class EnemyBase : MonoBehaviour
 
         float targetX = player.position.x;
         if (hasPatrolBounds)
-        {
             targetX = Mathf.Clamp(targetX, patrolMinX, patrolMaxX);
-        }
 
         float dx = targetX - transform.position.x;
 
-        HandleFlip(dx);
+
+        if (currentState == EnemyState.Chase)
+            HandleFlip(dx);
 
         float absDx = Mathf.Abs(dx);
+
+        // ----------------------------------------------
+        // 1) LONGE → ANDA
+        // ----------------------------------------------
         if (absDx > stopDistance + stopBuffer)
         {
-            // Se estamos exatamente na borda do patrulhamento e o player está fora, não avançar além
-            if (hasPatrolBounds)
-            {
-                if ((dx > 0f && Mathf.Approximately(transform.position.x, patrolMaxX)) ||
-                    (dx < 0f && Mathf.Approximately(transform.position.x, patrolMinX)))
-                {
-                    rb.linearVelocity = Vector2.zero;
-                    animator.SetBool("isWalking", false);
-                    return;
-                }
-            }
             rb.linearVelocity = new Vector2(Mathf.Sign(dx) * moveSpeed, 0f);
             animator.SetBool("isWalking", true);
+            return;
         }
-        else if (absDx < stopDistance - stopBuffer)
-        {
-            rb.linearVelocity = Vector2.zero;
-            animator.SetBool("isWalking", false);
+
+        // ----------------------------------------------
+        // 2) PERTO (PARA) → ATACA SE TIVER NO RANGE
+        // ----------------------------------------------
+        rb.linearVelocity = Vector2.zero;
+        animator.SetBool("isWalking", false);
+
+        // Agora qualquer distância onde ele para, ele pode atacar
+        if (!isAttacking && PlayerInSight())
             OnReachStopDistance();
-            // Tenta atacar ao alcançar a distância de parada
-            TryAttack();
-        }
-        else
-        {
-            // ZONA MORTA: mantém estado atual para evitar tremer
-            rb.linearVelocity = Vector2.zero;
-            animator.SetBool("isWalking", false);
-        }
     }
 
     // -------------------------------------------
-    // FLIP
+    // ATAQUE (mantive sua rotina antiga)
     // -------------------------------------------
-    protected void HandleFlip(float dx)
+    protected void OnReachStopDistance()
     {
-        if (dx > 0 && !facingRight) Flip();
-        else if (dx < 0 && facingRight) Flip();
-    }
-
-    protected void Flip()
-    {
-        facingRight = !facingRight;
-        Vector3 s = transform.localScale;
-        s.x *= -1;
-        transform.localScale = s;
-    }
-
-    // -------------------------------------------
-    // ATAQUE BASE + GANCHOS
-    // -------------------------------------------
-    protected virtual void OnReachStopDistance() {}
-
-    // Chamada segura de ataque a partir do Base
-    protected void TryAttack()
-    {
-        if (isDead || isHitted || isAttacking) return;
-        if (!PlayerInSight()) return;
+        if (isDead || isAttacking) return;
         Attack();
     }
 
-    // Implementação padrão: inicia rotina de ataque
-    protected virtual void Attack()
+    protected void Attack()
     {
         if (isAttacking) return;
         if (AnimatorBusy()) return;
         StartCoroutine(AttackRoutine());
+        Debug.Log("ATTACK ROUTINE STARTED");
     }
 
-    protected virtual IEnumerator AttackRoutine()
+    protected IEnumerator AttackRoutine()
     {
         isAttacking = true;
         rb.linearVelocity = Vector2.zero;
 
-        // prepara
-        animator.ResetTrigger(HashIsPrepare);
-        animator.ResetTrigger(HashIsShoot);
-        animator.SetBool(HashIsWalking, false);
-        animator.SetTrigger(HashIdle);
-        yield return null;
+        Vector2 dir = player ? (Vector2)(player.position - transform.position).normalized : Vector2.right;
+        HandleFlip(dir.x);
 
-        animator.SetTrigger(HashIsPrepare);
-        yield return null;
+        animator.ResetTrigger("isShoot");
+        animator.SetBool("isWalking", false);
 
-        // shoot trigger
-        animator.SetTrigger(HashIsShoot);
-        yield return null;
+        animator.SetTrigger("isShoot");
 
-        // fallback de disparo caso não exista AnimationEvent
+
         if (!useAnimationEvent)
         {
             float timeoutShoot = 1.5f;
@@ -350,25 +344,34 @@ public abstract class EnemyBase : MonoBehaviour
             OnShoot();
         }
 
-        // aguarda voltar ao Idle com timeout
-        float timeout = 2.5f;
-        float t = 0f;
-        while (t < timeout)
-        {
-            var info = animator.GetCurrentAnimatorStateInfo(0);
-            if (info.IsName("Idle")) break;
-            t += Time.deltaTime;
-            yield return null;
-        }
-
         yield return new WaitForSeconds(shootCooldown);
+
         isAttacking = false;
     }
 
-    // Hook para o momento do tiro
-    protected virtual void OnShoot() {}
+    public void OnShoot()
+    {
+        if (!projectilePrefab || !firePoint) return;
+        float bulletDelay = 0.15f; // tempo de delay para coincidir com animação
 
-    // Verifica se o Animator está em estados de tiro
+        // Cria a bala depois do delay
+        Invoke(nameof(SpawnBullet), bulletDelay);
+        
+    }
+
+    private void SpawnBullet()
+    {
+        GameObject bulletObj = Instantiate(projectilePrefab, firePoint.position, firePoint.rotation);
+        Bullet bullet = bulletObj.GetComponent<Bullet>();
+        if (bullet != null)
+        {
+            float bulletSpeed = 10f;
+            Vector2 direction = facingRight ? Vector2.right : Vector2.left;
+            bullet.Launch(direction, bulletSpeed);
+        }
+        AudioSource.PlayClipAtPoint(shootSound, transform.position);
+        
+    }
     protected bool AnimatorBusy()
     {
         if (!animator) return false;
@@ -376,50 +379,66 @@ public abstract class EnemyBase : MonoBehaviour
         return info.IsName("PrepareShoot") || info.IsName("Shoot");
     }
 
-    // Verifica visão/alcance básico
-    protected virtual bool PlayerInSight()
+    // -------------------------------------------
+    // FLIP (mantém somente multiplicação do x — sem set absoluto)
+    // -------------------------------------------
+    protected void HandleFlip(float dx)
+    {
+        if (dx > 0 && !facingRight) Flip();
+        else if (dx < 0 && facingRight) Flip();
+    }
+
+    protected void Flip()
+    {
+        facingRight = !facingRight;
+        Vector3 s = baseScale; // usa escala base
+        s.x *= facingRight ? 1 : -1; // aplica inversão absoluta
+        transform.localScale = s;
+    }
+
+
+    // -------------------------------------------
+    // VISÃO DO PLAYER (corrigida)
+    // -------------------------------------------
+    protected bool PlayerInSight()
     {
         if (!player) return false;
+
+        // Se estiver dentro do range e virar para o Player → pode atirar
         float dist = Vector2.Distance(transform.position, player.position);
         return dist <= attackRange;
     }
 
+
     // -------------------------------------------
-    // DANO / MORTE
+    // HIT / DEATH
     // -------------------------------------------
-    public virtual void TakeHit()
+    public void TakeHit()
     {
         if (isDead) return;
-
         isHitted = true;
         currentState = EnemyState.Hitted;
-
-        OnTakeHitAnimation();
-
         Invoke(nameof(ResetHit), 0.4f);
     }
-
-    protected virtual void OnTakeHitAnimation() {}
 
     void ResetHit()
     {
         isHitted = false;
     }
 
-    public virtual void Die()
+    public void Die()
     {
         if (isDead) return;
-
         isDead = true;
         currentState = EnemyState.Dead;
-
         rb.linearVelocity = Vector2.zero;
-
-        OnDeathAnimation();
-
+        animator.SetTrigger("isDie");
         Destroy(gameObject, 2f);
     }
 
-    protected abstract void OnDeathAnimation();
+    // Chamado na animação de shoot
+    
+
 }
-*/
+
+

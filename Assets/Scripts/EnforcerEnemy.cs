@@ -1,4 +1,4 @@
-using UnityEngine;
+/*using UnityEngine;
 
 public class EnforcerEnemy : EnemyBase
 {
@@ -9,7 +9,7 @@ public class EnforcerEnemy : EnemyBase
     
     public float maxSpreadAngle = 0f; 
 
-    protected override void PerformShoot()
+    protected void PerformShoot()
     {
         if (player == null || bulletPrefab == null || shootPoint == null)
         {
@@ -38,4 +38,15 @@ public class EnforcerEnemy : EnemyBase
             Debug.LogError("O Prefab da bala não possui o componente Bullet.cs!");
         }
     }
+
+    protected override void Attack()
+    {
+        PerformShoot();
+    }
+
+    protected override void OnDeathAnimation()
+    {
+        if (animator) animator.SetTrigger("Die");
+    }
 }
+*/
