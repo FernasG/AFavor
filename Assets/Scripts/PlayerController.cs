@@ -15,11 +15,11 @@ public class PlayerController : MonoBehaviour
     public LayerMask groundLayer;
     private bool _isGrounded;
     
-    // [Header("Shooting")]
-    // public GameObject bulletPrefab;
-    // public Transform firePoint;
-    // public float fireRate = 0.5f;
-    // private float nextFire = 0f;
+    [Header("Shooting")]
+    public GameObject bulletPrefab;
+    public Transform firePoint;
+    public float fireRate = 0.5f;
+    private float nextFire = 0f;
     
     [Header("Animation")]
     [SerializeField]
@@ -50,12 +50,12 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         _isGrounded = Physics2D.OverlapCircle(groundCheck.position, 0.2f, groundLayer);
-
-        // if (playerControls.Player.Shoot.IsPressed() && Time.time > nextFire)
-        // {
-        //     nextFire = Time.time + fireRate;
-        //     Shoot();
-        // }
+        
+        if (playerControls.Player.Shoot.IsPressed() && Time.time > nextFire)
+        {
+            nextFire = Time.time + fireRate;
+            Shoot();
+        }
         
         UpdateAnimation();
     }
@@ -100,6 +100,14 @@ public class PlayerController : MonoBehaviour
 
     void Shoot()
     {
-        // Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
+        if (_animator != null)
+        {
+            _animator.SetTrigger("Shoot");
+        }
+        
+        GameObject playerShoot = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
+        PlayerShoot shootScript = playerShoot.GetComponent<PlayerShoot>();
+    
+        shootScript.Launch(isFacingRight);
     }
 }
