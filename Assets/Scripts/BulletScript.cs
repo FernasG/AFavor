@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // Garante que o Rigidbody2D existe no objeto da bala
-[RequireComponent(typeof(Rigidbody2D))] 
+[RequireComponent(typeof(Rigidbody2D))]
 public class Bullet : MonoBehaviour
 {
     private Rigidbody2D rb;
@@ -11,9 +11,9 @@ public class Bullet : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         // Garante que a bala não seja afetada pela gravidade para ter uma trajetória perfeitamente reta
-        rb.gravityScale = 0; 
+        rb.gravityScale = 0;
         // Garante que a bala não é cinemática para podermos usar rb.velocity
-        rb.isKinematic = false; 
+        rb.isKinematic = false;
     }
 
     // Esta função é chamada SOMENTE UMA VEZ pelo inimigo no momento do disparo.
@@ -21,8 +21,8 @@ public class Bullet : MonoBehaviour
     {
         // Aplica a velocidade imediatamente. Como só é chamada uma vez, 
         // a direção (direction * speed) será fixa e a trajetória será linear.
-        rb.velocity = direction.normalized * speed;
-        
+        rb.linearVelocity = direction.normalized * speed;
+
         // Define a rotação (opcional, apenas visual)
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
         transform.rotation = Quaternion.Euler(0f, 0f, angle);
@@ -38,13 +38,19 @@ public class Bullet : MonoBehaviour
     private void OnCollisionEnter2D(Collision2D collision)
     {
         // A colisão só funciona se a bala e o Player tiverem Rigidbody2D e Collider2D
-        
+
         // 1. Atingiu o Player?
         if (collision.gameObject.CompareTag("Player"))
         {
             Debug.Log("Player Atingido!");
+            PlayerHealth playerHealth = collision.gameObject.GetComponent<PlayerHealth>();
+            if (playerHealth != null)
+            {
+                playerHealth.TakeDamage(15); // coloque o valor de dano da bala
+            }
+
             // Implemente aqui a lógica de dano ao Player
-            Destroy(gameObject); 
+            Destroy(gameObject);
         }
         // 2. Atingiu qualquer outra coisa que não seja outro inimigo
         else if (!collision.gameObject.CompareTag("Enemy"))

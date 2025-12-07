@@ -1,19 +1,25 @@
 fileFormatVersion: 2
-guid: a6b071e958479964989c05cf93a298de
+guid: 7aa9af3f17966b7ddb029d7a5ae85419
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 2649847697073447219
-    second: Dead_0
+      213: 6190046699634431837
+    second: assault_death_0
   - first:
-      213: -8293461521501190705
-    second: Dead_1
+      213: 4620315854290089955
+    second: assault_death_1
   - first:
-      213: -1631342717326862633
-    second: Dead_2
+      213: 317013621138341215
+    second: assault_death_2
   - first:
-      213: -3927913518680497933
-    second: Dead_3
+      213: -5728814989829592915
+    second: assault_death_3
+  - first:
+      213: 8240648502723513542
+    second: assault_death_4
+  - first:
+      213: 3088305754036295026
+    second: assault_death_5
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -122,89 +128,133 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Dead_0
+      name: assault_death_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 128
-        height: 128
+        x: 24
+        y: 15
+        width: 20
+        height: 33
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 33123f4e07626c420800000000000000
-      internalID: 2649847697073447219
+      spriteID: d571ac25da677e550800000000000000
+      internalID: 6190046699634431837
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Dead_1
+      name: assault_death_1
       rect:
         serializedVersion: 2
-        x: 128
-        y: 0
-        width: 128
-        height: 128
+        x: 103
+        y: 15
+        width: 18
+        height: 33
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: fc50d84dfa4b7ec80800000000000000
-      internalID: -8293461521501190705
+      spriteID: 3e7f01d3ac8ae1040800000000000000
+      internalID: 4620315854290089955
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Dead_2
+      name: assault_death_2
       rect:
         serializedVersion: 2
-        x: 256
-        y: 0
-        width: 128
-        height: 128
+        x: 184
+        y: 15
+        width: 24
+        height: 27
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 7d6dfca117e4c59e0800000000000000
-      internalID: -1631342717326862633
+      spriteID: f5d39e47532466400800000000000000
+      internalID: 317013621138341215
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Dead_3
+      name: assault_death_3
       rect:
         serializedVersion: 2
-        x: 384
-        y: 0
-        width: 128
-        height: 128
+        x: 263
+        y: 15
+        width: 26
+        height: 25
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 3f0289a377f3d79c0800000000000000
-      internalID: -3927913518680497933
+      spriteID: da8264b8e192f70b0800000000000000
+      internalID: -5728814989829592915
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assault_death_4
+      rect:
+        serializedVersion: 2
+        x: 344
+        y: 15
+        width: 38
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6cc80b3072aac5270800000000000000
+      internalID: 8240648502723513542
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assault_death_5
+      rect:
+        serializedVersion: 2
+        x: 424
+        y: 15
+        width: 38
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 275d02388bddbda20800000000000000
+      internalID: 3088305754036295026
       vertices: []
       indices: 
       edges: []
@@ -213,7 +263,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 55dd10480242020dfbc516f4e6e34f9b
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -221,14 +271,14 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries:
-      - key: SpriteEditor.SliceSettings
-        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":128.0,"y":128.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":1,"keepEmptyRects":false,"isAlternate":false}'
+      entries: []
     nameFileIdTable:
-      Dead_0: 2649847697073447219
-      Dead_1: -8293461521501190705
-      Dead_2: -1631342717326862633
-      Dead_3: -3927913518680497933
+      assault_death_0: 6190046699634431837
+      assault_death_1: 4620315854290089955
+      assault_death_2: 317013621138341215
+      assault_death_3: -5728814989829592915
+      assault_death_4: 8240648502723513542
+      assault_death_5: 3088305754036295026
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

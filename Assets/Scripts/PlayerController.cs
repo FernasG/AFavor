@@ -20,10 +20,16 @@ public class PlayerController : MonoBehaviour
     public Transform firePoint;
     public float fireRate = 0.5f;
     private float nextFire = 0f;
+
+    [Header("Sons")]
+    [SerializeField] AudioClip shootSound;
     
     [Header("Animation")]
     [SerializeField]
     private Animator _animator;
+
+    [Header("Health")]
+    public PlayerHealth playerHealth; 
     
     private PlayerControls playerControls;
     
@@ -105,6 +111,7 @@ public class PlayerController : MonoBehaviour
             _animator.SetTrigger("Shoot");
         }
         
+        AudioSource.PlayClipAtPoint(shootSound, transform.position);
         GameObject playerShoot = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
         PlayerShoot shootScript = playerShoot.GetComponent<PlayerShoot>();
     
