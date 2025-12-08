@@ -25,6 +25,19 @@ namespace UI
             Application.Quit();
         }
 
+        public void TryAgain()
+        {
+            string loadLevel = PlayerPrefs.GetString("CurrentLevel", "Level_01");
+
+            SceneManager.LoadScene(loadLevel);
+        }
+
+        public void GoHome()
+        {
+            SceneManager.LoadScene("MainMenu");
+        }
+        
+
         public void UpdateSound()
         {
             _soundOn = !_soundOn;

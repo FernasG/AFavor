@@ -10,9 +10,12 @@ public class PlayerController : MonoBehaviour
     private bool isFacingRight = true;
     
     [Header("Jumping")]
-    public float jumpForce = 5f;
+    public float jumpForce = 12;
+    public float multiplierFall = 2.5f;
+    public float multiplierLowJump = 2f;
     public Transform groundCheck;
     public LayerMask groundLayer;
+    private bool _isJumpPressed;
     private bool _isGrounded;
     
     [Header("Shooting")]
@@ -63,6 +66,7 @@ public class PlayerController : MonoBehaviour
             Shoot();
         }
         
+        ApplyJumpPhysics();
         UpdateAnimation();
     }
     
@@ -92,9 +96,31 @@ public class PlayerController : MonoBehaviour
     
     public void OnJump(InputAction.CallbackContext context)
     {
-        if (context.performed && _isGrounded)
+        if (context.performed)
         {
-            _rb.linearVelocity = new Vector2(_rb.linearVelocity.x, jumpForce);
+            _isJumpPressed = true;
+
+            if (_isGrounded)
+            {
+                _rb.linearVelocity = new Vector2(_rb.linearVelocity.x, jumpForce);
+            }
+        }
+
+        if (context.canceled)
+        {
+            _isJumpPressed = false;
+        }
+    }
+    
+    void ApplyJumpPhysics()
+    {
+        if (_rb.linearVelocity.y < 0)
+        {
+            _rb.linearVelocity += Vector2.up * Physics2D.gravity.y * (multiplierFall - 1) * Time.deltaTime;
+        }
+        else if (_rb.linearVelocity.y > 0 && !_isJumpPressed)
+        {
+            _rb.linearVelocity += Vector2.up * Physics2D.gravity.y * (multiplierLowJump - 1) * Time.deltaTime;
         }
     }
 

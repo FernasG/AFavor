@@ -1,12 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.SceneManagement;
 using UnityEngine;
+using UnityEngine.UI;
 
-public class BossTank : MonoBehaviour
+public class BossTank : EnemyBase
 {
     public enum BossState { Patrol, Repositioning, SpecialAttack }
     
-    [Header("Configurações Gerais")]
+    [Header("General Settings")]
     public BossState currentState;
     public float speed = 5f;
     public float fastSpeed = 8f;
@@ -29,16 +31,36 @@ public class BossTank : MonoBehaviour
     private List<int> _lifeTriggers = new List<int> { 80, 60, 40, 20 };
     private bool _rageMode = false;
     
+    [Header("Visual Feedback")]
+    public Color flashColor = Color.red;
+    public float flashDuration = 0.1f;
+    private Color _originalColor;
+    private Coroutine _flashRoutine;
+    public Color intangibleColor = new Color(0.5f, 0.5f, 1f, 0.6f);
+    public GameObject explosionPrefab;
+    
+    [Header("UI")]
+    public Slider healthBar;
+    
     private Rigidbody2D _rb;
     private SpriteRenderer _spriteRenderer;
+    private Collider2D[] _colliders;
     
     void Start()
     {
         _rb = GetComponent<Rigidbody2D>();
-        _spriteRenderer = GetComponent<SpriteRenderer>();
+        _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        _colliders = GetComponents<Collider2D>();
         _currentLife = maxLife;
+        _originalColor = _spriteRenderer.color;
         _currentDestination = pointA.position;
         currentState = BossState.Patrol;
+
+        if (healthBar != null)
+        {
+            healthBar.maxValue = maxLife;
+            healthBar.value = _currentLife;
+        }
     }
     
     void Update()
@@ -56,12 +78,12 @@ public class BossTank : MonoBehaviour
 
     void PatrolBehavior()
     {
-        transform.position = Vector2.MoveTowards(transform.position, _currentDestination, speed * Time.deltaTime);
+        Vector3 aimLockedY = new Vector3(_currentDestination.x, transform.position.y, transform.position.z);
+        transform.position = Vector2.MoveTowards(transform.position, aimLockedY, speed * Time.deltaTime);
 
-        if (Vector2.Distance(transform.position, _currentDestination) < 0.2f)
+        if (Mathf.Abs(transform.position.x - _currentDestination.x) < 0.2f)
         {
-            if (_currentDestination == pointA.position) _currentDestination = pointB.position;
-            else _currentDestination = pointA.position;
+            _currentDestination = (_currentDestination == pointA.position) ? pointB.position : pointA.position;
             
             FlipSprite();
         }
@@ -69,7 +91,7 @@ public class BossTank : MonoBehaviour
         _nextFire += Time.deltaTime;
         if (_nextFire >= fireRate)
         {
-            Shoot();
+            ShootPlayer();
             _nextFire = 0;
         }
     }
@@ -78,12 +100,14 @@ public class BossTank : MonoBehaviour
     {
         float destA = Vector2.Distance(transform.position, pointA.position);
         float destB = Vector2.Distance(transform.position, pointB.position);
-        Vector3 rageAim = (destA < destB) ? pointA.position : pointB.position;
+        float positionX = (destA < destB) ? pointA.position.x : pointB.position.x;
+        
+        Vector3 rageAim = new Vector3(positionX, transform.position.y, transform.position.z);
 
         transform.position = Vector2.MoveTowards(transform.position, rageAim, fastSpeed * Time.deltaTime);
         
-        if(rageAim.x > transform.position.x && transform.localScale.x > 0) FlipSprite();
-        else if(rageAim.x < transform.position.x && transform.localScale.x < 0) FlipSprite();
+        if (rageAim.x > transform.position.x && transform.localScale.x > 0) FlipSprite();
+        else if (rageAim.x < transform.position.x && transform.localScale.x < 0) FlipSprite();
 
         if (Vector2.Distance(transform.position, rageAim) < 0.2f)
         {
@@ -107,6 +131,7 @@ public class BossTank : MonoBehaviour
         yield return new WaitForSeconds(1f);
         
         _rageMode = false;
+        DisableVisualIntangible();
         currentState = BossState.Patrol;
         
         _currentDestination = (Vector2.Distance(transform.position, pointA.position) < 1f) ? pointB.position : pointA.position;
@@ -119,29 +144,56 @@ public class BossTank : MonoBehaviour
         }
     }
     
-    void Shoot()
+    IEnumerator RedFlashEffect()
     {
-        Instantiate(heavyShellPrefab, firePoint.position, firePoint.rotation);
-    }
+        _spriteRenderer.color = flashColor;
 
+        yield return new WaitForSeconds(flashDuration);
+
+        _spriteRenderer.color = _originalColor;
+        
+        _flashRoutine = null; 
+    }
+    
     void ShootPlayer ()
     {
         GameObject heavyShell = Instantiate(heavyShellPrefab, firePoint.position, Quaternion.identity);
-        Vector2 direction = (player.position - firePoint.position).normalized;
-        // Se a bala tiver Rigidbody2D, aplique força aqui, ou passe a direção para o script da bala
+        Vector2 direction = (transform.localScale.x > 0) ? Vector2.left : Vector2.right;
         
-        heavyShell.GetComponent<Rigidbody2D>().velocity = direction * 10f; // Exemplo simples
+        Bullet bullet = heavyShell.GetComponent<Bullet>(); 
+
+        if (bullet != null)
+        {
+            float bulletSpeed = 10f;
+            bullet.Launch(direction, bulletSpeed);            
+        }
+    }
+    
+    void EnableVisualIntangible()
+    {
+        if (_flashRoutine != null) StopCoroutine(_flashRoutine);
         
-        // Rotaciona a bala para olhar pro player (opcional)
-        float angulo = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-        heavyShell.transform.rotation = Quaternion.Euler(0, 0, angulo);
+        _spriteRenderer.color = intangibleColor;
+    }
+    
+    void DisableVisualIntangible()
+    {
+        _spriteRenderer.color = _originalColor;
     }
 
-    public void TakeDamage(int damage)
+    public override void TakeHit(int damage)
     {
-        if (_rageMode) return; // Opcional: Invencível enquanto faz o especial?
+        if (currentState == BossState.Repositioning || _rageMode) return;
 
+        if (_flashRoutine != null) StopCoroutine(_flashRoutine);
+        _flashRoutine = StartCoroutine(RedFlashEffect());
+        
         _currentLife -= damage;
+
+        if (healthBar != null)
+        {
+            healthBar.value = _currentLife;
+        }
         
         for (int i = _lifeTriggers.Count - 1; i >= 0; i--)
         {
@@ -155,14 +207,41 @@ public class BossTank : MonoBehaviour
 
         if (_currentLife <= 0)
         {
-            Destroy(gameObject);
+            StartCoroutine(EndGameSequence());
         }
+    }
+
+    IEnumerator EndGameSequence()
+    {
+        if (healthBar != null) healthBar.gameObject.SetActive(false);
+
+        _spriteRenderer.enabled = false;
+        _rb.sleepMode = RigidbodySleepMode2D.StartAwake;
+        
+        this.enabled = false;
+
+        foreach (Collider2D collider in _colliders)
+        {
+            collider.enabled = false;
+        }
+        
+        if (explosionPrefab != null)
+        {
+            Instantiate(explosionPrefab, transform.position, Quaternion.identity);
+        }
+        
+        yield return new WaitForSeconds(3f);
+            
+        SceneManager.LoadScene("EndGame");
+        
+        Destroy(gameObject);
     }
 
     void EnableSpecialPhase()
     {
         _rageMode = true;
         currentState = BossState.Repositioning;
+        EnableVisualIntangible();
     }
     
     void FlipSprite()
