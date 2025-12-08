@@ -1,64 +1,79 @@
 using UnityEngine;
 using UnityEditor;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+
 public class PlayerHealth : MonoBehaviour
 {
     [Header("Health Settings")]
     public int maxHealth = 100;
     public int currentHealth;
+    
+    [Header("Interface")]
+    public Slider healthSlider;
 
-    public Animator animator;
-
-    private bool isDead = false;
-
-    private void Awake()
-    {
-    }
+    private bool _isDead = false;
+    private Animator _animator;
 
     private void Start()
     {
         currentHealth = maxHealth;
-        animator = transform.Find("Sprite").GetComponent<Animator>();
+        _animator = transform.Find("Sprite").GetComponent<Animator>();
 
-        if(animator == null)
+        if(_animator == null)
         {
             Debug.LogError("Animator not found on PlayerHealth!");
         }
-    }
-
-    private void Update()
-    {
         
+        if (healthSlider != null)
+        {
+            healthSlider.maxValue = maxHealth;
+            healthSlider.value = currentHealth;
+        }
     }
 
     public void TakeDamage(int amount)
     {
-        if (isDead) return;
+        if (_isDead) return;
 
         currentHealth -= amount;
-        animator.SetTrigger("Hitted");
-
+        
+        if (healthSlider != null)
+        {
+            healthSlider.value = currentHealth;
+        }
+        
         if (currentHealth <= 0)
         {
             Die();
+
+            return;
         }
+        
+        _animator.SetTrigger("Hitted");
     }
 
     public void Die()
     {
-        if (isDead) return;
-        isDead = true;
-
-        animator.SetTrigger("Dead");
-
-        // desativa controles mas NÃO destrói imediatamente
+        if (_isDead) return;
+        
+        _isDead = true;
+        _animator.SetTrigger("Dead");
+        
         PlayerController controller = GetComponent<PlayerController>();
         if (controller != null) controller.enabled = false;
 
         Rigidbody2D rb = GetComponent<Rigidbody2D>();
         if (rb != null) rb.linearVelocity = Vector2.zero;
 
-        // destrói depois
         Destroy(gameObject, 1.2f);
+        
+        string currentLevel = SceneManager.GetActiveScene().name;
+        
+        PlayerPrefs.SetString("CurrentLevel", currentLevel);
+        PlayerPrefs.Save();
+        
+        SceneManager.LoadScene("GameOver");
     }
 }
 

@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Collections;
 
 [RequireComponent(typeof(Rigidbody2D))]
-public class AssaultEnemy : MonoBehaviour
+public class AssaultEnemy : EnemyBase
 {
     public enum EnemyState
     {
@@ -306,7 +306,6 @@ public class AssaultEnemy : MonoBehaviour
         if (isAttacking) return;
         if (AnimatorBusy()) return;
         StartCoroutine(AttackRoutine());
-        Debug.Log("ATTACK ROUTINE STARTED");
     }
 
     protected IEnumerator AttackRoutine()
@@ -363,8 +362,8 @@ public class AssaultEnemy : MonoBehaviour
             Vector2 direction = facingRight ? Vector2.right : Vector2.left;
             bullet.Launch(direction, bulletSpeed);
         }
-        AudioSource.PlayClipAtPoint(shootSound, transform.position);
 
+        AudioSource.PlayClipAtPoint(shootSound, transform.position);
     }
     protected bool AnimatorBusy()
     {
@@ -407,7 +406,7 @@ public class AssaultEnemy : MonoBehaviour
     // -------------------------------------------
     // HIT / DEATH
     // -------------------------------------------
-    public void TakeHit(int damage)
+    public override void TakeHit(int damage)
     {
         if (isDead) return;
 
@@ -431,8 +430,6 @@ public class AssaultEnemy : MonoBehaviour
             currentState = EnemyState.Chase;
             waitingPatrol = false; // libera patrulha caso estivesse parada
         }
-
-
     }
 
     void ResetHit()

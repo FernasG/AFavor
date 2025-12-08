@@ -30,14 +30,13 @@ public class PlayerShoot : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D hitInfo)
     {
-        // Verifica se atingiu o inimigo    
-        Debug.Log("entrou no trigger de tiro do inimigo ");
-        AssaultEnemy enemy = hitInfo.GetComponent<AssaultEnemy>();
+        EnemyBase enemy = hitInfo.GetComponent<EnemyBase>();
 
         if (enemy != null)
         {
-            enemy.TakeHit(damage);  // Chama seu método no inimigo
+            enemy.TakeHit(damage);
             Destroy(gameObject);
+            
             return;
         }
     }
